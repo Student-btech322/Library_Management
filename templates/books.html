@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block title %}Books - {{ library_name }}{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="toolbar">
+    <h1 style="margin:0">Books</h1>
+    <div class="spacer"></div>
+    <input id="search" placeholder="Search title, author, code, category" style="max-width:320px">
+    <button class="btn btn-primary" id="add-btn">+ Add book</button>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Code</th><th>Title</th><th>Author</th><th>Category</th><th>Available</th><th></th></tr></thead>
+      <tbody id="rows"></tbody>
+    </table>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="book-modal">
+  <form class="modal" id="book-form">
+    <h2 id="form-title">Add book</h2>
+    <div class="form-grid">
+      <div><label>Book code / ISBN *</label>
+        <div class="row"><input name="code" required placeholder="e.g. BK1011"><button type="button" class="btn" id="code-cam" title="Scan barcode">&#128247;</button></div></div>
+      <div><label>Total copies *</label><input name="total_copies" type="number" min="1" value="1" required></div>
+      <div class="full"><label>Title *</label><input name="title" required></div>
+      <div><label>Author</label><input name="author"></div>
+      <div><label>Category</label><input name="category" list="categories"></div>
+    </div>
+    <datalist id="categories"><option>Computer Science</option><option>Programming</option><option>Mathematics</option><option>Physics</option><option>Electronics</option><option>Mechanical</option><option>Civil</option><option>Fiction</option></datalist>
+    <div class="modal-footer">
+      <button type="button" class="btn" data-close="book-modal">Cancel</button>
+      <button class="btn btn-primary">Save</button>
+    </div>
+  </form>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+let books = [], editingId = null;
+const form = document.getElementById('book-form');
+
+async function load() {
+  books = await api('/api/books?q=' + encodeURIComponent(document.getElementById('search').value));
+  document.getElementById('rows').innerHTML = books.length ? books.map(b => `
+    <tr>
+      <td><code>${esc(b.code)}</code></td>
+      <td><strong>${esc(b.title)}</strong></td>
+      <td>${esc(b.author || '-')}</td><td>${esc(b.category || '-')}</td>
+      <td><span class="badge ${b.available > 0 ? 'ok' : 'zero'}">${b.available} / ${b.total_copies}</span></td>
+      <td><div class="actions">
+        <a class="btn btn-sm" href="/books/${b.id}/label" target="_blank">Barcode</a>
+        <button class="btn btn-sm" data-edit="${b.id}">Edit</button>
+        <button class="btn btn-sm btn-danger" data-del="${b.id}">Delete</button>
+      </div></td>
+    </tr>`).join('') : '<tr><td colspan="6" class="empty">No books found</td></tr>';
+}
+
+function openForm(b) {
+  editingId = b ? b.id : null;
+  form.reset();
+  document.getElementById('form-title').textContent = b ? 'Edit book' : 'Add book';
+  if (b) for (const k of ['code', 'title', 'author', 'category', 'total_copies']) form.elements[k].value = b[k] ?? '';
+  openModal('book-modal');
+  form.elements.code.focus();
+}
+
+form.onsubmit = async e => {
+  e.preventDefault();
+  try {
+    await api(editingId ? `/api/books/${editingId}` : '/api/books', { method: editingId ? 'PUT' : 'POST', body: Object.fromEntries(new FormData(form)) });
+    closeModal('book-modal');
+    toast('Book saved', 'success');
+    load();
+  } catch (err) { toast(err.message, 'error'); }
+};
+form.elements.code.onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); form.elements.title.focus(); } };
+
+document.getElementById('code-cam').onclick = () => Scanner.open('Scan book barcode', code => { form.elements.code.value = code; });
+document.getElementById('add-btn').onclick = () => openForm(null);
+document.getElementById('search').oninput = debounce(load);
+document.getElementById('rows').onclick = async e => {
+  const ed = e.target.dataset.edit, del = e.target.dataset.del;
+  if (ed) openForm(books.find(b => b.id == ed));
+  if (del && confirm('Delete this book?')) {
+    try { await api('/api/books/' + del, { method: 'DELETE' }); toast('Book deleted'); load(); }
+    catch (err) { toast(err.message, 'error'); }
+  }
+};
+load();
+</script>
+{% endblock %}

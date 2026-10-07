@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <link rel="icon" href="data:,">
+  <title>ID Card - {{ s.name }}</title>
+  <style>
+    body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background: #e5e7eb; display: flex; flex-direction: column; align-items: center; padding: 2rem; gap: 1rem; }
+    .idcard { width: 85.6mm; height: 54mm; background: #fff; border-radius: 3mm; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,.15); display: flex; flex-direction: column; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .head { background: linear-gradient(90deg, #1e3a8a, #2563eb); color: #fff; padding: 2mm 3mm; font-size: 3.2mm; font-weight: 700; display: flex; justify-content: space-between; align-items: center; }
+    .head small { font-weight: 400; font-size: 2.4mm; opacity: .85; }
+    .body { flex: 1; display: flex; gap: 3mm; padding: 2.5mm 3mm; align-items: center; }
+    .photo { width: 19mm; height: 24mm; border-radius: 1.5mm; object-fit: cover; background: linear-gradient(135deg, #6366f1, #2563eb); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 7mm; font-weight: 700; flex-shrink: 0; }
+    .info { flex: 1; font-size: 2.6mm; line-height: 1.45; min-width: 0; }
+    .info .name { font-size: 3.6mm; font-weight: 700; margin-bottom: .8mm; }
+    .info > div:not(.name) { display: flex; }
+    .info b { color: #6b7280; font-weight: 500; width: 13mm; flex-shrink: 0; }
+    #qr { width: 20mm; height: 20mm; flex-shrink: 0; }
+    #qr img, #qr canvas { width: 100% !important; height: 100% !important; }
+    .foot { text-align: center; padding-bottom: 1mm; }
+    .foot svg { height: 8mm; }
+    button { font: inherit; padding: .6rem 1.2rem; border-radius: 8px; border: 0; background: #2563eb; color: #fff; cursor: pointer; }
+    @media print { body { background: #fff; padding: 0; } button, .hint { display: none; } .idcard { box-shadow: none; border: 1px solid #ccc; } }
+  </style>
+</head>
+<body>
+  <div class="idcard">
+    <div class="head"><span>{{ library_name }}</span><small>Library Card</small></div>
+    <div class="body">
+      {% if s.photo_url %}<img class="photo" src="{{ s.photo_url }}" alt="">{% else %}<div class="photo">{{ (s.name.split()|map('first')|join('')|upper)[:2] }}</div>{% endif %}
+      <div class="info">
+        <div class="name">{{ s.name }}</div>
+        <div><b>ID No.</b>{{ s.card_id }}</div>
+        <div><b>Roll No.</b>{{ s.roll_no or '-' }}</div>
+        <div><b>Branch</b>{{ s.branch or '-' }}</div>
+        <div><b>Year</b>{{ s.year or '-' }}</div>
+      </div>
+      <div id="qr"></div>
+    </div>
+    <div class="foot"><svg id="barcode"></svg></div>
+  </div>
+  <p class="hint" style="color:#6b7280;font-size:.9rem">Scan the QR code or barcode at the library desk to auto-fill this student's details.</p>
+  <button onclick="window.print()">Print ID card</button>
+  <script src="{{ url_for('static', filename='vendor/qrcode.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='vendor/JsBarcode.all.min.js') }}"></script>
+  <script>
+    const id = {{ s.card_id|tojson }};
+    new QRCode(document.getElementById('qr'), { text: id, width: 256, height: 256, correctLevel: QRCode.CorrectLevel.M });
+    JsBarcode('#barcode', id, { format: 'CODE128', height: 40, displayValue: false, margin: 0 });
+  </script>
+</body>
+</html>
