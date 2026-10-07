@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Issue / Return - {{ library_name }}{% endblock %}
+{% block content %}
+<div class="stats">
+  <div class="stat"><div class="num" id="st-books">-</div><div class="lbl">Total books (<span id="st-titles">-</span> titles)</div></div>
+  <div class="stat"><div class="num" id="st-students">-</div><div class="lbl">Registered students</div></div>
+  <div class="stat"><div class="num" id="st-issued">-</div><div class="lbl">Books issued now</div></div>
+  <div class="stat warn"><div class="num" id="st-overdue">-</div><div class="lbl">Overdue</div></div>
+</div>
+
+<div class="grid-2">
+  <section class="card">
+    <h2><span class="step">1</span>Scan student ID card</h2>
+    <form class="row" id="card-form" autocomplete="off">
+      <input id="card-input" placeholder="Scan with barcode scanner or type ID card no. / roll no." autofocus>
+      <button class="btn btn-primary" type="submit">Find</button>
+      <button class="btn" type="button" id="card-cam" title="Scan with camera">&#128247; Camera</button>
+    </form>
+    <p class="muted small" style="margin:.5rem 0 1rem">Try sample ID: <a href="#" class="sample">STU2024001</a>, <a href="#" class="sample">STU2024002</a></p>
+    <div id="student-box">
+      <div class="placeholder">&#129706; Scan or enter a student ID card to auto-fill student details</div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2><span class="step">2</span>Choose book to issue</h2>
+    <form class="row" id="book-form" autocomplete="off">
+      <div class="suggest">
+        <input id="book-input" placeholder="Scan book barcode or search by title / author / code" disabled>
+        <div class="suggest-list" id="book-suggest" hidden></div>
+      </div>
+      <button class="btn" type="button" id="book-cam" title="Scan with camera" disabled>&#128247; Camera</button>
+    </form>
+    <div id="book-box"><p class="muted small" style="margin-top:1rem">Scan a student ID card first.</p></div>
+  </section>
+</div>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/desk.js') }}"></script>{% endblock %}

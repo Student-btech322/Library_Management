@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <link rel="icon" href="data:,">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}{{ library_name }}{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="{{ url_for('desk') }}">&#128218; {{ library_name }}</a>
+    <nav class="nav">
+      <a href="{{ url_for('desk') }}" class="{{ 'active' if active == 'desk' }}">Issue / Return</a>
+      <a href="{{ url_for('books_page') }}" class="{{ 'active' if active == 'books' }}">Books</a>
+      <a href="{{ url_for('students_page') }}" class="{{ 'active' if active == 'students' }}">Students</a>
+      <a href="{{ url_for('records_page') }}" class="{{ 'active' if active == 'records' }}">Records</a>
+    </nav>
+  </header>
+  <main class="container">{% block content %}{% endblock %}</main>
+
+  <div class="modal-backdrop" id="scanner-modal">
+    <div class="modal">
+      <h2 id="scanner-title">Scan ID card</h2>
+      <p class="muted small">Hold the QR code / barcode in front of the camera.</p>
+      <div id="scanner-region"></div>
+      <p id="scanner-error" class="alert" style="display:none;margin-top:1rem"></p>
+      <div class="modal-footer">
+        <label class="btn" style="margin:0;font-weight:400">Upload photo of card
+          <input type="file" accept="image/*" id="scanner-file" hidden>
+        </label>
+        <button class="btn" id="scanner-close">Cancel</button>
+      </div>
+    </div>
+  </div>
+  <div id="toast"></div>
+
+  <script>window.LIB = { loanDays: {{ loan_days }}, maxBooks: {{ max_books }}, finePerDay: {{ fine_per_day }} };</script>
+  <script src="{{ url_for('static', filename='vendor/html5-qrcode.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/common.js') }}"></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

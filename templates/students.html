@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% block title %}Students - {{ library_name }}{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="toolbar">
+    <h1 style="margin:0">Students</h1>
+    <div class="spacer"></div>
+    <input id="search" placeholder="Search name, ID card, roll no., branch" style="max-width:320px">
+    <button class="btn btn-primary" id="add-btn">+ Add student</button>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th></th><th>Name</th><th>ID card no.</th><th>Roll no.</th><th>Branch</th><th>Year</th><th>Books</th><th></th></tr></thead>
+      <tbody id="rows"></tbody>
+    </table>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="student-modal">
+  <form class="modal" id="student-form">
+    <h2 id="form-title">Add student</h2>
+    <div class="form-grid">
+      <div><label>ID card no. *</label><input name="card_id" required placeholder="e.g. STU2024010"></div>
+      <div><label>Full name *</label><input name="name" required></div>
+      <div><label>Roll no.</label><input name="roll_no"></div>
+      <div><label>Branch</label><input name="branch" list="branches"></div>
+      <div><label>Year</label>
+        <select name="year"><option value="">-</option><option>1st</option><option>2nd</option><option>3rd</option><option>4th</option></select></div>
+      <div><label>Phone</label><input name="phone" type="tel"></div>
+      <div class="full"><label>Email</label><input name="email" type="email"></div>
+      <div class="full"><label>Photo</label><input name="photo" type="file" accept="image/*"></div>
+    </div>
+    <datalist id="branches"><option>Computer Science</option><option>Electronics</option><option>Electrical</option><option>Mechanical</option><option>Civil</option><option>Information Technology</option></datalist>
+    <div class="modal-footer">
+      <button type="button" class="btn" data-close="student-modal">Cancel</button>
+      <button class="btn btn-primary">Save</button>
+    </div>
+  </form>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+let students = [], editingId = null;
+const form = document.getElementById('student-form');
+
+async function load() {
+  const q = document.getElementById('search').value;
+  students = await api('/api/students?q=' + encodeURIComponent(q));
+  document.getElementById('rows').innerHTML = students.length ? students.map(s => `
+    <tr>
+      <td>${avatarHtml(s, 'sm')}</td>
+      <td><strong>${esc(s.name)}</strong><br><span class="muted small">${esc(s.email || '')}</span></td>
+      <td>${esc(s.card_id)}</td><td>${esc(s.roll_no || '-')}</td><td>${esc(s.branch || '-')}</td><td>${esc(s.year || '-')}</td>
+      <td>${s.issued_count}</td>
+      <td><div class="actions">
+        <a class="btn btn-sm" href="/?card=${encodeURIComponent(s.card_id)}">Issue</a>
+        <a class="btn btn-sm" href="/students/${s.id}/card" target="_blank">ID card</a>
+        <button class="btn btn-sm" data-edit="${s.id}">Edit</button>
+        <button class="btn btn-sm btn-danger" data-del="${s.id}">Delete</button>
+      </div></td>
+    </tr>`).join('') : '<tr><td colspan="8" class="empty">No students found</td></tr>';
+}
+
+function openForm(s) {
+  editingId = s ? s.id : null;
+  form.reset();
+  document.getElementById('form-title').textContent = s ? 'Edit student' : 'Add student';
+  if (s) for (const k of ['card_id', 'name', 'roll_no', 'branch', 'year', 'email', 'phone']) form.elements[k].value = s[k] || '';
+  openModal('student-modal');
+  form.elements.card_id.focus();
+}
+
+form.onsubmit = async e => {
+  e.preventDefault();
+  try {
+    await api(editingId ? `/api/students/${editingId}` : '/api/students', { method: editingId ? 'PUT' : 'POST', form: new FormData(form) });
+    closeModal('student-modal');
+    toast('Student saved', 'success');
+    load();
+  } catch (err) { toast(err.message, 'error'); }
+};
+
+document.getElementById('add-btn').onclick = () => openForm(null);
+document.getElementById('search').oninput = debounce(load);
+document.getElementById('rows').onclick = async e => {
+  const ed = e.target.dataset.edit, del = e.target.dataset.del;
+  if (ed) openForm(students.find(s => s.id == ed));
+  if (del && confirm('Delete this student and their borrowing history?')) {
+    try { await api('/api/students/' + del, { method: 'DELETE' }); toast('Student deleted'); load(); }
+    catch (err) { toast(err.message, 'error'); }
+  }
+};
+load();
+</script>
+{% endblock %}
